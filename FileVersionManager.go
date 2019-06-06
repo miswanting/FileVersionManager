@@ -24,6 +24,7 @@ import (
 	"log"
 	"os"
 	"regexp"
+	"strconv"
 	"strings"
 	"time"
 )
@@ -96,7 +97,11 @@ func tick() {
 		// 		continue
 		// 	}
 		// }
-		checkNameType(newFile.Name)
+		// fmt.Println(checkNameType(newFile.Name))
+		if checkNameType(newFile.Name) {
+			logger.Println(parseName(newFile.Name))
+		}
+
 	}
 	b, _ := json.MarshalIndent(newData, "", "    ")
 	f, _ := os.Create(DataFile)
@@ -139,15 +144,34 @@ func findFolder(root *Folder, data *Data) {
 	}
 
 }
-func checkNameType(name string) {
-	re := regexp.MustCompile(`.*v([0-9].[0-9]*?)\.[a-z]*?$`)
-	res := re.FindStringSubmatch(name)
-	if len(res) > 1 {
-		logger.Println(res[1])
+func checkNameType(name string) bool {
+	re := regexp.MustCompile(`^(?P<FileName>.*?)\sv(?P<Major>\d+)(?:\.(?P<Minor>\d+))?(?:\.(?P<Patch>\d+))?(?:\-(?P<Identifier>[a-zA-z0-9\.]+))?(?:\+(?P<Metadata>[a-zA-z0-9\.]+))?(?:\-(?P<Command>[a-zA-z0-9\.]+))?\.(?P<Extension>.*?)$`)
+	// able := re.FindString(name)
+	match := re.FindStringSubmatch(name)
+	if len(match) > 0 {
+		return true
 	}
-
+	return false
 }
-func parseName() {}
+func parseName(name string) *File {
+	re := regexp.MustCompile(`^(?P<FileName>.*?)\sv(?P<Major>\d+)(?:\.(?P<Minor>\d+))?(?:\.(?P<Patch>\d+))?(?:\-(?P<Identifier>[a-zA-z0-9\.]+))?(?:\+(?P<Metadata>[a-zA-z0-9\.]+))?(?:\-(?P<Command>[a-zA-z0-9\.]+))?\.(?P<Extension>.*?)$`)
+	match := re.FindStringSubmatch(name)
+	file := &File{}
+	if len(match) > 0 {
+		major, _ := strconv.ParseInt(match[2], 10, 0)
+		minor, _ := strconv.ParseInt(match[3], 10, 0)
+		patch, _ := strconv.ParseInt(match[4], 10, 0)
+		file.Name = match[1]
+		file.Major = int(major)
+		file.Minor = int(minor)
+		file.Patch = int(patch)
+		file.Identifier = strings.Split(match[5], ".")
+		file.Metadata = strings.Split(match[6], ".")
+		file.Command = match[7]
+		// Extension:  match[8],
+	}
+	return file
+}
 func getTimeStamp() {
 	t := time.Now().Format("060102")
 	logger.Println(t)
@@ -163,14 +187,17 @@ type Folder struct {
 	Folders []Folder
 }
 type File struct {
-	Path      string
-	Modi      time.Time
-	Hash      string
-	Name      string
-	MajorVer  int
-	MinorVer  int
-	PatchVer  int
-	TimeStamp string
+	Path       string
+	Modi       time.Time
+	Hash       string
+	Name       string
+	Major      int
+	Minor      int
+	Patch      int
+	Identifier []string
+	Metadata   []string
+	Command    string
+	Extension  string
 }
 
 func Read(readWriter *bufio.ReadWriter) (p []byte) {
