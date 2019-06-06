@@ -23,6 +23,7 @@ import (
 	"io/ioutil"
 	"log"
 	"os"
+	"regexp"
 	"strings"
 	"time"
 )
@@ -95,7 +96,7 @@ func tick() {
 		// 		continue
 		// 	}
 		// }
-		logger.Println(newFile)
+		checkNameType(newFile.Name)
 	}
 	b, _ := json.MarshalIndent(newData, "", "    ")
 	f, _ := os.Create(DataFile)
@@ -138,10 +139,17 @@ func findFolder(root *Folder, data *Data) {
 	}
 
 }
-func checkNameType(name string) {}
-func parseName()                {}
+func checkNameType(name string) {
+	re := regexp.MustCompile(`.*v([0-9].[0-9]*?)\.[a-z]*?$`)
+	res := re.FindStringSubmatch(name)
+	if len(res) > 1 {
+		logger.Println(res[1])
+	}
+
+}
+func parseName() {}
 func getTimeStamp() {
-	t, _ := time.Parse(time.Now().String(), "130203")
+	t := time.Now().Format("060102")
 	logger.Println(t)
 }
 
